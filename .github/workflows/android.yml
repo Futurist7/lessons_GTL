@@ -67,7 +67,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: |
-            adb shell settings put global window_animation_scale 0 ; ./gradlew connectedDebugAndroidTest --stacktrace ; echo "GRADLE_EXIT=$?" ; adb logcat -d -s LinguaTest:I AndroidRuntime:E > logcat.txt ; cat logcat.txt ; adb pull /sdcard/Download/lingua_e2e.png . || true
+            adb shell settings put global window_animation_scale 0 ; ./gradlew connectedDebugAndroidTest --stacktrace ; G=$? ; echo "GRADLE_EXIT=$G" ; adb logcat -d -s LinguaTest:I AndroidRuntime:E > logcat.txt ; cat logcat.txt ; adb pull /sdcard/Download/lingua_e2e.png . || true ; exit $G
       - uses: actions/upload-artifact@v4
         if: always()
         with:
