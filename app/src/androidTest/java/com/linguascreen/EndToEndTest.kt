@@ -61,6 +61,12 @@ class EndToEndTest {
         ok.click()
         Thread.sleep(2500)
 
+        // Diagnostic: OCR the system screenshot too, to compare with the MediaProjection capture.
+        inst.uiAutomation.takeScreenshot()?.let { shot ->
+            val blocks = runBlocking { com.linguascreen.data.ocr.MlKitOcrEngine().recognize(shot) }
+            log("SYSTEM SCREENSHOT OCR ${shot.width}x${shot.height}: " + blocks.joinToString { "'${it.text}'" })
+        }
+
         val button = device.wait(Until.findObject(By.desc("LinguaScreen translate button")), 15_000)
         assertNotNull("floating button should be visible over the other app", button)
         button.click()

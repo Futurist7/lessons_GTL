@@ -37,6 +37,7 @@ class TranslationPipeline @Inject constructor(
         lastResult?.let { if (hash == lastHash && target == lastTarget) return it }
 
         val raw = ocr.recognize(bitmap)
+        debugLog("OCR ${bitmap.width}x${bitmap.height}: " + raw.joinToString { "'${it.text}'@${it.bounds.flattenToString()}" })
         val blocks = filter(raw, bitmap.width, bitmap.height)
         if (blocks.isEmpty()) {
             if (isBlank(bitmap)) throw LinguaException.SecureContent()
@@ -44,11 +45,19 @@ class TranslationPipeline @Inject constructor(
         }
 
         val translated = translations.translate(blocks, target)
+        debugLog("TRANSLATED: " + translated.joinToString { "'${it.original}' -> '${it.translation}'" })
         val result = ScreenTranslation(translated, bitmap.width, bitmap.height)
         lastHash = hash; lastTarget = target; lastResult = result
 
         if (s.saveHistory) runCatching { history.save(translated, sourceApp) }
         return result
+    }
+
+    /** Logs recognised text, in debuggable builds only (never in release). */
+    private fun debugLog(msg: String) {
+        if ((context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            android.util.Log.i("LinguaTest", msg)
+        }
     }
 
     /** Frees cached results; called when the system is low on memory. */
