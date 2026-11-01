@@ -186,6 +186,10 @@ class TranslationOverlay(
                 .build()
         }
 
+        init {
+            contentDescription = result.blocks.joinToString(" | ") { it.translation }
+        }
+
         override fun onDraw(canvas: Canvas) {
             for (item in items) {
                 rect.set(item.box.left, item.box.top, item.box.right, item.box.bottom)

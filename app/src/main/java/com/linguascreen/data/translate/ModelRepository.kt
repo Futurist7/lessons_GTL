@@ -16,7 +16,8 @@ import javax.inject.Singleton
 sealed interface ModelState {
     data object Checking : ModelState
     data object Missing : ModelState
-    data object Downloading : ModelState
+    /** [done] of [total] models finished; [current] is the model being fetched right now. */
+    data class Downloading(val done: Int = 0, val total: Int = 0, val current: String = "") : ModelState
     data object Ready : ModelState
     data class Failed(val message: String) : ModelState
 }
@@ -29,7 +30,7 @@ class ModelRepository @Inject constructor(private val provider: TranslationProvi
     val state: StateFlow<ModelState> = _state.asStateFlow()
 
     suspend fun refresh(target: String) {
-        if (_state.value == ModelState.Downloading) return
+        if (_state.value is ModelState.Downloading) return
         _state.value = ModelState.Checking
         _state.value = if (provider.isReady(target)) ModelState.Ready else ModelState.Missing
     }
@@ -40,10 +41,12 @@ class ModelRepository @Inject constructor(private val provider: TranslationProvi
     }
 
     private suspend fun download(target: String, allowCellular: Boolean) {
-        if (_state.value == ModelState.Downloading) return
-        _state.value = ModelState.Downloading
+        if (_state.value is ModelState.Downloading) return
+        _state.value = ModelState.Downloading()
         try {
-            provider.downloadModel(target, allowCellular)
+            provider.downloadModel(target, allowCellular) { done, total, name ->
+                _state.value = ModelState.Downloading(done, total, name)
+            }
             _state.value = if (provider.isReady(target)) ModelState.Ready else ModelState.Missing
         } catch (e: CancellationException) {
             _state.value = ModelState.Missing

@@ -21,7 +21,7 @@ data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val targetLanguage: String = Languages.DEFAULT_TARGET,
     val saveHistory: Boolean = true,
-    val allowCellularDownload: Boolean = false,
+    val allowCellularDownload: Boolean = true,
     val overlayOpacity: Float = 0.92f,
     /** Last floating-button position in px; -1 means "never moved" (use default). */
     val buttonX: Int = -1,
@@ -47,7 +47,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
             theme = p[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
             targetLanguage = p[Keys.target] ?: Languages.DEFAULT_TARGET,
             saveHistory = p[Keys.saveHistory] ?: true,
-            allowCellularDownload = p[Keys.cellular] ?: false,
+            allowCellularDownload = p[Keys.cellular] ?: true,
             overlayOpacity = p[Keys.opacity] ?: 0.92f,
             buttonX = p[Keys.buttonX] ?: -1,
             buttonY = p[Keys.buttonY] ?: -1,

@@ -17,7 +17,11 @@ interface TranslationProvider {
     suspend fun isReady(target: String): Boolean
 
     /** Downloads missing models. Throws [LinguaException.ModelDownloadFailed]. */
-    suspend fun downloadModel(target: String, allowCellular: Boolean)
+    suspend fun downloadModel(
+        target: String,
+        allowCellular: Boolean,
+        onProgress: (done: Int, total: Int, name: String) -> Unit = { _, _, _ -> },
+    )
 
     /** Translates one piece of text. Throws on failure. */
     suspend fun translate(text: String, target: String): String

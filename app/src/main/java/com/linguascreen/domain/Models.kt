@@ -57,6 +57,12 @@ sealed class LinguaException(message: String, cause: Throwable? = null) : Except
             cause,
         )
 
+    class WifiRequired :
+        LinguaException("You are on mobile data. Connect to Wi-Fi, or turn on \"Download models on mobile data\" in Settings.")
+
+    class ModelDownloadTimeout :
+        LinguaException("The download is taking too long. Check your connection and try again.")
+
     class TranslationFailed(cause: Throwable? = null) :
         LinguaException("Translation failed. Please try again.", cause)
 }

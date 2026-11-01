@@ -82,14 +82,16 @@ fun ModelCard(targetName: String, vm: ModelViewModel = hiltViewModel()) {
         when (val s = state) {
             ModelState.Checking -> Text("Checking…", style = MaterialTheme.typography.bodyMedium)
             ModelState.Ready -> Text("Ready. Translation works offline.", style = MaterialTheme.typography.bodyMedium)
-            ModelState.Downloading -> {
-                Text("Downloading (about 30 MB per language)…", style = MaterialTheme.typography.bodyMedium)
+            is ModelState.Downloading -> {
+                val step = if (s.total > 0) " (${minOf(s.done + 1, s.total)} of ${s.total})" else ""
+                val name = if (s.current.isNotBlank()) "${s.current} model" else "models"
+                Text("Downloading $name$step…", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(Modifier.fillMaxWidth())
             }
             ModelState.Missing -> {
                 Text(
-                    "Not downloaded yet. Download once (about 30 MB per language) to translate offline.",
+                    "Not downloaded yet. Download once (about 30 MB per model, Chinese + English) to translate offline.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(12.dp))

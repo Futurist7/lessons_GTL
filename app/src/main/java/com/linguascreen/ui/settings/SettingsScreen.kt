@@ -70,7 +70,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
                 LabeledRow("Translate to", "Source: Chinese (auto-detected)") {
                     LanguageDropdown(s.targetLanguage, vm::setTarget)
                 }
-                LabeledRow("Download models on mobile data", "Off = Wi-Fi only") {
+                LabeledRow("Download models on mobile data", "Off = Wi-Fi only (download stops with a message otherwise)") {
                     Switch(checked = s.allowCellularDownload, onCheckedChange = vm::setAllowCellular)
                 }
             }

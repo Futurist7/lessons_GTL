@@ -14,6 +14,9 @@ import com.linguascreen.domain.LinguaException
 import com.linguascreen.domain.TranslationProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
+import java.util.Locale
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -53,17 +56,41 @@ class MlKitTranslationProvider @Inject constructor(
         }
     }
 
-    override suspend fun downloadModel(target: String, allowCellular: Boolean) {
+    override suspend fun downloadModel(
+        target: String,
+        allowCellular: Boolean,
+        onProgress: (done: Int, total: Int, name: String) -> Unit,
+    ) {
         if (!isOnline()) throw LinguaException.ModelDownloadFailed(offline = true)
-        val conditions = DownloadConditions.Builder().apply { if (!allowCellular) requireWifi() }.build()
-        try {
-            translator(target).downloadModelIfNeeded(conditions).await()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            throw LinguaException.ModelDownloadFailed(offline = !isOnline(), cause = e)
+        // ML Kit's own requireWifi() waits silently forever on mobile data, so check it ourselves
+        // and fail fast with a clear message instead.
+        if (!allowCellular && isMetered()) throw LinguaException.WifiRequired()
+        val missing = linkedSetOf(TranslateLanguage.CHINESE, TranslateLanguage.ENGLISH, target).filter {
+            !isDownloaded(it)
         }
+        val conditions = DownloadConditions.Builder().build()
+        missing.forEachIndexed { i, lang ->
+            onProgress(i, missing.size, Locale.forLanguageTag(lang).getDisplayLanguage(Locale.ENGLISH))
+            try {
+                withTimeout(DOWNLOAD_TIMEOUT_MS) {
+                    modelManager.download(TranslateRemoteModel.Builder(lang).build(), conditions).await()
+                }
+            } catch (e: TimeoutCancellationException) {
+                throw LinguaException.ModelDownloadTimeout()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                throw LinguaException.ModelDownloadFailed(offline = !isOnline(), cause = e)
+            }
+        }
+        onProgress(missing.size, missing.size, "")
     }
+
+    private suspend fun isDownloaded(lang: String): Boolean =
+        modelManager.isModelDownloaded(TranslateRemoteModel.Builder(lang).build()).await()
+
+    private fun isMetered(): Boolean =
+        context.getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered == true
 
     override suspend fun translate(text: String, target: String): String = try {
         translator(target).translate(text).await()
@@ -71,6 +98,10 @@ class MlKitTranslationProvider @Inject constructor(
         throw e
     } catch (e: Exception) {
         throw LinguaException.TranslationFailed(e)
+    }
+
+    private companion object {
+        const val DOWNLOAD_TIMEOUT_MS = 5 * 60_000L
     }
 
     private fun isOnline(): Boolean {
